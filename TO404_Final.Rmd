@@ -1,0 +1,334 @@
+---
+title: "TO 404 Individual Final Submission"
+author: "Brian Zhao"
+date: "12/13/2020"
+output:
+  html_document:
+    number_sections: false
+    toc: true
+    toc_float: 
+      toc_collapsed: true
+    toc_depth: 3
+    theme: lumen
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Setup
+
+## Libraries
+```{r}
+library("ggplot2")
+library("tidyverse")
+library("gender")
+library("stringr")
+```
+
+## Import Data
+```{r}
+# airbnb <- read.csv("AB_NYC_2019.csv")
+airbnb <- read.csv("AB_NYC_2019_Gender.csv")
+```
+
+## Explore Data
+```{r}
+str(airbnb)
+head(airbnb)
+tail(airbnb)
+summary(airbnb)
+```
+
+## Clean Data
+```{r, eval = FALSE}
+# Create Gender Column (from Piazza)
+airbnb$gender <- "unknown"
+num <- 1
+for (i in airbnb$host_name) {
+  if (nrow(gender(i)['gender']) == 0) {
+    airbnb$gender[num] <- "unknown"
+  }
+  else if (nrow(gender(i)['gender'] == 1) & gender(i)['gender'] == "male") {
+    airbnb$gender[num] <- "male"
+  }
+  else if (nrow(gender(i)['gender'] == 1) & gender(i)['gender'] == "female") {
+    airbnb$gender[num] <- "female"
+  }
+  num <- num + 1
+}
+
+airbnb$gender
+
+# Write New Data File w/ Gender
+write.csv(airbnb, "AB_NYC_2019_Gender.csv")
+```
+
+```{r}
+# Assign Factors
+airbnb$neighbourhood_group <- as.factor(airbnb$neighbourhood_group)
+airbnb$neighbourhood <- as.factor(airbnb$neighbourhood)
+airbnb$room_type <- as.factor(airbnb$room_type)
+airbnb$last_review <- as.Date(airbnb$last_review)
+airbnb$gender <- as.factor(airbnb$gender)
+```
+
+```{r, eval = FALSE}
+# Re-Check Data
+summary(airbnb)
+str(airbnb)
+```
+
+## Filter Data
+```{r}
+# Restrict Analysis to the Manhattan Neighborhood Group
+airbnb_manhatten <- airbnb
+airbnb_manhatten <- airbnb_manhatten %>% filter(neighbourhood_group == "Manhattan")
+```
+
+```{r, eval = FALSE}
+# Re-Check Data
+summary(airbnb_manhatten)
+str(airbnb_manhatten)
+```
+
+There are `r nrow(airbnb[airbnb_manhatten$id,])` rentals currently listed in the Manhattan area. 
+
+
+
+# Questions
+
+**Prompt:**
+
+You have been hired by Ross, Och, Michigan, and Blau Associates (ROOMBA). They own a bunch of Airbnb properties in NYC. There properties are not performing well and they would like you to analyze the given data of Airbnb rentals in NYC for year 2019 to answer a few of their questions.
+
+Since most of ROOMBA properties are in Manhatten, they have asked you to restrict your analysis to only the Manhattan Neighborhood Group.
+
+
+
+## Question 1
+ROOMBA has hear a lot about this chart type called Jitter Plot (in ggplot2 package). They would like you to build a Jitter Plot. You can choose any suitable part of the data set to do the plot. They would also like you to interpret and explain the Jitter Plot.
+
+    The geom_jitter() function adds a small amount of random variation to the location of each point, and is a useful way of handling overplotting caused by discreteness in smaller datasets. The resulting "Jitter Plot" allows you to get a better idea of the concentration of points which might be stacked on top of each other without the jitter.
+
+
+### Price by Room Type
+How rental prices varies by room type (entire home/apt vs. private room vs. shared room) within Manhatten
+
+```{r}
+ggplot(data = airbnb_manhatten, aes(x = room_type, y = price, colour = room_type)) + geom_point(alpha = 0.25) + geom_jitter() + labs(title = "Effects of Room Type on Rental Price", x = "Room Type", y = "Price")
+
+ggplot(data = airbnb_manhatten[airbnb_manhatten$price < 2500, ], aes(x = room_type, y = price, colour = room_type)) + geom_point(alpha = 0.25) + geom_jitter() + labs(title = "Effects of Room Type on Rental Price (Price < $2500)", x = "Room Type", y = "Price")
+```
+
+**Interpretation:**
+Based on the Jitter Plots above we can deduce a lot of information about the types of rooms being listed in Manhatten and how they are priced. We can see from the density and number of points that there are significantly more entire homes/apts listed in Manhatten (`r nrow(airbnb_manhatten[airbnb_manhatten$room_type == "Entire home/apt", ])` entire homes/apts) than private rooms (`r nrow(airbnb_manhatten[airbnb_manhatten$room_type == "Private room", ])` private rooms), and there is merely `r nrow(airbnb_manhatten[airbnb_manhatten$room_type == "Shared room", ])` shared rooms listed in all of Manhatten. This Jitter plot also gives us an insight into the prices that these types of rooms are rented at. We can see that the maximum rental price for any type of listing is around 10,000 dollars for a select few entire homes/apts and private rooms. However there are no shared rooms even close to this price. Seeing where the points are concentrated also gives us an idea of what the average and most common rental prices for each room type is. We can see that entire homes/apts fall around `r mean(airbnb_manhatten$price[airbnb_manhatten$room_type == "Entire home/apt"], )` dollars, private rooms fall around `r mean(airbnb_manhatten$price[airbnb_manhatten$room_type == "Private room"], )` dollars, and shared rooms fall around `r mean(airbnb_manhatten$price[airbnb_manhatten$room_type == "Shared room"], )`. This all makes sense as entire-homes are both easier to list (don't have to work with other tenants) and would be worth more to a potential renter (more space and privacy) compared to a private or shared room. Overall using a Jitter Plot for this visualization gives us a better way to see the concentration of points which would normally be overlapping.
+    
+```{r}
+# Data for the Interpretation
+nrow(airbnb_manhatten[airbnb_manhatten$room_type == "Entire home/apt", ])
+nrow(airbnb_manhatten[airbnb_manhatten$room_type == "Private room", ])
+nrow(airbnb_manhatten[airbnb_manhatten$room_type == "Shared room", ])
+mean(airbnb_manhatten$price[airbnb_manhatten$room_type == "Entire home/apt"], )
+mean(airbnb_manhatten$price[airbnb_manhatten$room_type == "Private room"], )
+mean(airbnb_manhatten$price[airbnb_manhatten$room_type == "Shared room"], )
+```
+
+
+### Price by Minimum Nights
+```{r}
+ggplot(data = airbnb_manhatten[airbnb_manhatten$price < 2500 & airbnb_manhatten$minimum_nights < 45, ], aes(x = minimum_nights, y = price, colour = room_type)) + geom_point(alpha = 0.25) + geom_jitter(width = .5, height = .5) + labs(title = "Effects of Minimum Nights on Rental Price", x = "Minimum Nights (days)", y = "Price")
+
+ggplot(data = airbnb_manhatten[airbnb_manhatten$price < 2500 & airbnb_manhatten$minimum_nights < 45, ], aes(x = minimum_nights, y = price, colour = room_type)) + geom_smooth() + labs(title = "Effects of Minimum Nights on Rental Price", x = "Minimum Nights (days)", y = "Price")
+```
+
+**Interpretation:**
+This is another Jitter Plot that shows how the Minimum Nights a customer needs to rent an Airbnb for affects the rental price. In this case, the Jitter Plot can be used to visualize and serve as a proxy for a more continuous scatter plot (since we are comparing two relatively continuous data points: days and price), and this can be used to better see a trend within the data without having to use a line chart. Here we can see how for entire homes/apts and private rooms the rental price generally declines as the minimum nights increases. This makes sense as we know that Airbnb hosts often offer discounts for customers who stay more than a month. This also explains the cluster of points around the 30 day mark and the slight jump in prices (specifically for entire homes/apts), as it is likely that these Airbnb hosts only offer month-long stays and this is a different demographic of Airbnb host altogether (probably listing larger home for long-term stays). Also, Airbnbs that are available for a short amount of minimum nights are likely more expensive because it is more difficult for a host to fill the space with back-to-back rentals. As a result, they charge a higher rental price to cover for when the space is not rented.
+
+
+
+## Question 2
+ROOMBA would like to know how Reviews affect the Rental Price. Calculate suitable descriptive statistics and data visualization to help ROOMBA understand the impact of Reviews on Rental Price. Consider all review related columns for answering this question.
+
+
+### Number of Reviews
+```{r}
+# Total Number of Reviews (subset price < 500 to remove outliers)
+ggplot(data = airbnb_manhatten[airbnb_manhatten$price < 500, ], aes(x = number_of_reviews, y = price)) + geom_smooth() + labs(title = "Effects of Total Number of Reviews on Rental Price", x = "Number of Reviews", y = "Price")
+
+barNumReviews <- tapply(airbnb_manhatten$price, airbnb_manhatten$number_of_reviews, mean, na.rm = TRUE)
+barplot(barNumReviews, xlab = "Number of Reviews", ylab = "Price")
+
+lmNumReviews <- lm(airbnb_manhatten$price ~ airbnb_manhatten$number_of_reviews)
+summary(lmNumReviews)
+```
+
+**Interpretation:**
+Surprisingly, the line chart suggests that on average, a higher number of total reviews leads to lower Airbnb rental prices. The average rental price starts at around ~160 dollars with 0 reviews and has a negative correlation to where listings with 600 reviews on average have a rental price of only ~50 dollars. According to the linear regression, the rental price decreases by around 41 cents for every new review. However, it is important to note that their are far fewer Airbnb listings as the number of reviews increases, so the confidence interval gets increasingly wide. Despite this, a cause for this trend could be that bad reviews have a big impact on rental price and listings are more likely to garner bad reviews if they have more reviews. However, if we look at the bar chart, the most expensive Airbnb listings also tend be those with the most reviews. This leads me to believe that reviews are an indicator of the extremes, really good listings and really bad ones, while more average ones are less reviewed. This makes sense as generally, customers are not motivated to review something unless they had an experience that stood our in a really good or bad way.
+
+
+### Reviews per Month
+```{r}
+# Reviews per Month (subset price < 500 to remove outliers)
+ggplot(data = airbnb_manhatten[airbnb_manhatten$price < 500, ], aes(x = reviews_per_month, y = price)) + geom_smooth() + labs(title = "Effects of Reviews per Month on Rental Price", x = "Reviews per Month", y = "Price")
+
+barReviewsperMonth <- tapply(airbnb_manhatten$price, airbnb_manhatten$reviews_per_month, mean, na.rm = TRUE)
+barplot(barReviewsperMonth, ylim = c(0,1000), xlab = "Reviews per Month", ylab = "Price")
+
+#Linear Regression
+lmReviewsperMonth <- lm(airbnb_manhatten$price ~ airbnb_manhatten$reviews_per_month)
+summary(lmReviewsperMonth)
+```
+
+**Interpretation:**
+Reviews per month seems to follow a similar trend to total number of reviews where a higher number o reviews per month leads to lower rental prices. The average rental price starts at around ~150 dollars with 0 reviews per month and has a negative correlation to where listings with ~600 reviews per month on average have a rental price of ~100 dollars. According to the linear regression, the rental price decreases by around 1.57 dollars everytime reviews per month increases by 1. However, once again, it is important to note that their are far fewer Airbnb listings with very high rates of reviews per month, so the confidence interval gets increasingly wide. I believe that the explanation for this trend is similar to that of the total number of reviews. If we assume reviews in general are a proxy for the extremes, both really good and really bad rental experiences, then a more frequently reviewed listing is likely because the listing is extremely poor or good. I would guess that bad reviews have a greater impact on price and this leads to the overall negative correlation.
+
+
+### Last Review
+```{r}
+# Last Review (subset price < 500 to remove outliers)
+ggplot(data = airbnb_manhatten[airbnb_manhatten$price < 500, ], aes(x = last_review, y = price)) + geom_smooth() + labs(title = "Effects of Last Review Date on Rental Price", x = "Last Review (Date)", y = "Price")
+
+barLastReview <- tapply(airbnb_manhatten$price, airbnb_manhatten$last_review, mean, na.rm = TRUE)
+barplot(barLastReview, ylim = c(0,1000), xlab = "Last Review (Date)", ylab = "Price")
+
+#Linear Regression
+lmLastReview <- lm(airbnb_manhatten$price ~ airbnb_manhatten$last_review)
+summary(lmLastReview)
+```
+
+**Interpretation:**
+If we look at the historical data of when an Airbnb listing was last reviewed we can see an interesting trend with rental prices. It seems that from 2018 - 2019 (present) their is a positive correlation where the most recently reviewed listings (near the end of 2019) command and average rental price of ~160 dollars and listings last reviewed at the beginning of 2018 only commanding around ~140 dollars. This makes sense, as a more recent review (especially a good/decent one) would inspire more confidence in a customer to decide to rent that listing and could lead to higher prices. However, listings that haven't been reviewed since before 2018 show a reversal of this trend (clearly from our linear regression results the trend is not linear at all). Once again, it is worthy of note that the confidence interval as we get closer to last reviews being in 2012 get progressively wider as there are likely less listings that haven't been reviewed in so long. However, a potential explanation for this trend is that these listings are extremely old and have not been rented or updated by the host in a long time. Thus, the price has not been adjusted for factors such good/bad reviews.
+
+
+
+## Question 3
+ROOMBA is concerned that they are not doing a good job of providing a good description of their properties (in the Name column). Specifically, they would like to know whether the following keywords in the Name field impact the rental price: Cozy, Townhome, Tribeca. They would also like to know whether the length of the description has an impact on the price.
+
+### Keywords
+```{r, eval = FALSE}
+# Create Keywords Column (SCRAPPED: Doesn't work for descriptions with multiple keywords)
+airbnb_manhatten$keyword <- "NA"
+num <- 1
+for (i in airbnb$name) {
+  if ((grepl("cozy", i, fixed = TRUE)) || (grepl("Cozy", i, fixed = TRUE))) {
+    airbnb$keyword[num] <- "Cozy"
+  }
+  else if ((grepl("large", i, fixed = TRUE)) || (grepl("Townhome", i, fixed = TRUE))) {
+    airbnb$keyword[num] <- "Townhome"
+  }
+  else if ((grepl("cute", i, fixed = TRUE)) || (grepl("Tribeca", i, fixed = TRUE))) {
+    airbnb$keyword[num] <- "Tribeca"
+  }
+  else if ((grepl("beautiful", i, fixed = TRUE)) || (grepl("Manhatten", i, fixed = TRUE))) {
+    airbnb$keyword[num] <- "Manhatten"
+  }
+  else if ((grepl("!", i, fixed = TRUE))) {
+    airbnb$keyword[num] <- "Exclaimation"
+  }
+  num <- num + 1
+}
+```
+
+```{r}
+# Frame for Average Rental Prices in Manhatten
+Manhatten <- airbnb_manhatten %>%
+  summarize(
+    n = n(),
+    averagePrice = mean(price),
+  ) %>%
+  mutate(keyword = "Manhatten (Average)")
+
+# Frame for Average Rental Prices by Keyword
+keywordCozy <- airbnb_manhatten %>%
+  filter(str_detect(name, "Cozy") == TRUE | str_detect(name, "cozy") == TRUE) %>%
+  summarize(
+    n = n(),
+    averagePrice = mean(price),
+  ) %>%
+  mutate(keyword = "Cozy")
+
+keywordTownhome <- airbnb_manhatten %>%
+  filter(str_detect(name, "Townhome") == TRUE | str_detect(name, "townhome") == TRUE) %>%
+  summarize(
+    n = n(),
+    averagePrice = mean(price),
+  ) %>%
+  mutate(keyword = "Townhome")
+
+keywordTribeca <- airbnb_manhatten %>%
+  filter(str_detect(name, "Tribeca") == TRUE | str_detect(name, "tribeca") == TRUE) %>%
+  summarize(
+    n = n(),
+    averagePrice = mean(price),
+  ) %>%
+  mutate(keyword = "Tribeca")
+
+# Bind Keyword Frames
+keywords <- rbind(keywordCozy, keywordTownhome, keywordTribeca, Manhatten)
+
+# Plot Effect of Keywords on Rental Price
+keywords$keyword <- factor(keywords$keyword,levels = c("Cozy", "Tribeca", "Townhome", "Manhatten (Average)"))
+keywords %>% ggplot(aes(x = keyword, y = averagePrice, fill = keyword)) + geom_col() + labs(title = "Effects of Keywords in Description on Rental Price", x = "Keyword in Description", y = "Average Rental Price")
+```
+
+**Interpretation:**
+This bar chart shows the average rental price of Airbnb listings based on whether or not they contain the keywords requested by ROOMBA ("Cozy", "Townhome", and "Tribeca"). I also plotted the average rental price of all the listings in Manhatten (labeled: "Manhatten (Average)") regardless of what keywords they used in the description to serve as a control to compare whether or not using these keywords have a positive or negative effect; This Manhatten overall average came out to be `r keywords$averagePrice[keywords$keyword == "Manhatten (Average)"]` dollars. We can see that listings containing the keyword "Townhome" had the highest average price at `r keywords$averagePrice[keywords$keyword == "Townhome"]` dollars. This is likely not simply due to the use of the keyword itself but rather because townhome is a descriptor of a specific type of listing. Townhomes are generally larger and must harder to come buy in Manhatten so they command higher rental prices than the other keywords or the Manhatten average by far. Listings containing the keyword "Tribeca" had an average rental price of `r keywords$averagePrice[keywords$keyword == "Tribeca"]` dollars. Once again, this keyword is a descriptor. Tribeca is a neighborhood in Lower Manhatten near the World Trade Center Area. This is one of the most affluent neighborhoods in all of New York, so it makes sense that listings with this keyword are likely located in this neighborhood and command a higher price than the Manhatten average. Of the three keywords we tested "Cozy" is the only one that had an average rental price below the overall Manhatten average at only `r keywords$averagePrice[keywords$keyword == "Cozy"]` dollars. This is likely due to the fact that "Cozy" is often used to describe smaller spaces. It may seem like a friendly term, but smaller spaces generally command lower rental prices.
+
+```{r}
+# Data for the Interpretation
+keywords$averagePrice[keywords$keyword == "Cozy"]
+keywords$averagePrice[keywords$keyword == "Townhome"]
+keywords$averagePrice[keywords$keyword == "Tribeca"]
+keywords$averagePrice[keywords$keyword == "Manhatten (Average)"]
+```
+
+
+
+### Description Length
+```{r}
+# Create Description Length Column
+airbnb_manhatten$descLength <- nchar(airbnb_manhatten$name, type = "chars", allowNA = FALSE, keepNA = NA)
+
+# Used to Decide Grouping Cutoff Lengths
+summary(airbnb_manhatten$descLength)
+
+# Plot Description Length (raw) vs. Price
+ggplot(data = airbnb_manhatten, aes(x = descLength, y = price)) + geom_smooth() + labs(title = "Effects of Description Length on Rental Price", x = "Description Length (chars)", y = "Price")
+
+# Group Description Lengths into Summary Columns (Short, Average, Long)
+airbnb_manhatten$description <- "NA"
+num <- 1
+for (i in airbnb_manhatten$descLength) {
+  if (i < 27) {
+    airbnb_manhatten$description[num] <- "Short"
+  }
+  else if (i > 47) {
+    airbnb_manhatten$description[num] <- "Long"
+  }
+  else {
+    airbnb_manhatten$description[num] <- "Average"
+  }
+  num <- num + 1
+}
+
+# Plot Description Length (grouped) vs. Price
+airbnb_manhatten %>%
+  group_by(description) %>%
+  summarise(
+    averagePrice = mean(price, na.rm = TRUE)
+  ) %>%
+  arrange(desc(averagePrice)) %>%
+  ggplot(aes(x = reorder(description, -averagePrice), y = averagePrice, fill = description)) + geom_col() + labs(title = "Effects of Description Length on Rental Price", x = "Description Length", y = "Price")
+```
+
+**Interpretation:**
+Based on the *line chart*, it seems that the optimal description length is around 100 characters, as the average rental price peaks there at around ~475 dollars. If we follow the trend line, it seems that descriptions that are any longer or shorter than that generally command lower rental prices. Something to note is that although they are priced lower than the peak, they are close to the average price in Manhatten of around 200 dollars so the peak may be due to outliers. However, another explanation is that more experienced and serious hosts will write a listing name/description that is descriptive but not too wordy, and this may happen to fall around 100 characters. Beyond this, I also used the summary statistics of description length to create groupings of description length centered around the average description length of 37 characters. "Long" descriptions were categorized as those with greater than 47 characters, "Average" as those between 27 and 47 characters, and "Short" as those with less than 27 characters. I then plotted the average price for each grouping on a *bar chart*. I found that long descriptions generally command the highest prices at an average of `r mean(airbnb_manhatten$price[airbnb_manhatten$description == "Long"], )` dollars. Average length descriptions command an average price of `r mean(airbnb_manhatten$price[airbnb_manhatten$description == "Average"], )` dollars, and Short descriptions command the lowest average price at `r mean(airbnb_manhatten$price[airbnb_manhatten$description == "Short"], )` dollars. Once again, the reasoning is largely the same. A longer decription tells potential customers more about the listing and could lead ot higher prices.
+
+```{r}
+# Data for the Interpretation
+mean(airbnb_manhatten$price[airbnb_manhatten$description == "Long"], )
+mean(airbnb_manhatten$price[airbnb_manhatten$description == "Average"], )
+mean(airbnb_manhatten$price[airbnb_manhatten$description == "Short"], )
+```
+
